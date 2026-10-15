@@ -1,0 +1,173 @@
+[
+    {
+        "name": "Refrigerator",
+        "power_w": 200,
+        "priority": 1,
+        "category": "critical",
+        "time_slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+        ]
+    },
+    {
+        "name": "Heater",
+        "power_w": 1700,
+        "priority": 1,
+        "category": "critical",
+        "time_slots": [
+            17,
+            18,
+            19,
+            20,
+            21
+        ]
+    },
+    {
+        "name": "Lighting",
+        "power_w": 100,
+        "priority": 1,
+        "category": "critical",
+        "time_slots": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+        ]
+    },
+    {
+        "name": "Kettle",
+        "power_w": 500,
+        "priority": 2,
+        "category": "flexible",
+        "time_slots": [
+            18
+        ]
+    },
+    {
+        "name": "Air Fryer",
+        "power_w": 950,
+        "priority": 2,
+        "category": "flexible",
+        "time_slots": [
+            19
+        ]
+    },
+    {
+        "name": "Microwave",
+        "power_w": 500,
+        "priority": 2,
+        "category": "flexible",
+        "time_slots": [
+            16
+        ]
+    },
+    {
+        "name": "Induction Cooker",
+        "power_w": 1500,
+        "priority": 2,
+        "category": "flexible",
+        "time_slots": [
+            17,
+            18
+        ]
+    },
+    {
+        "name": "Air Conditioner",
+        "power_w": 1500,
+        "priority": 3,
+        "category": "flexible",
+        "time_slots": []
+    },
+    {
+        "name": "Blender",
+        "power_w": 250,
+        "priority": 3,
+        "category": "flexible",
+        "time_slots": [
+            13
+        ]
+    },
+    {
+        "name": "Coffee Machine",
+        "power_w": 1000,
+        "priority": 3,
+        "category": "flexible",
+        "time_slots": [
+            14
+        ]
+    },
+    {
+        "name": "Toaster",
+        "power_w": 800,
+        "priority": 3,
+        "category": "flexible",
+        "time_slots": [
+            15
+        ]
+    },
+    {
+        "name": "Iron",
+        "power_w": 750,
+        "priority": 3,
+        "category": "deferrable",
+        "time_slots": [
+            21
+        ]
+    },
+    {
+        "name": "Dishwasher",
+        "power_w": 840,
+        "priority": 4,
+        "category": "deferrable",
+        "time_slots": [
+            20
+        ]
+    },
+    {
+        "name": "Washing Machine",
+        "power_w": 700,
+        "priority": 4,
+        "category": "deferrable",
+        "time_slots": [
+            21,
+            22
+        ]
+    },
+    {
+        "name": "TV",
+        "power_w": 100,
+        "priority": 5,
+        "category": "deferrable",
+        "time_slots": [
+            18,
+            19,
+            20,
+            21
+        ]
+    }
+]

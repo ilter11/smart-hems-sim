@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HEMS Console — Residential Energy Dispatch & Peak Shaving Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Top Operational Banner -->
+  <header class="console-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="system-indicator active" aria-hidden="true"></div>
+        <div>
+          <h1 class="brand-title">Smart HEMS Console</h1>
+          <p class="brand-desc">Residential Energy Dispatch, Solar PV & Storage Optimization</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="https://github.com/ilter11/smart-hems-sim" class="repo-link" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          Open Source Repository
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Telemetry Bar -->
+  <section class="telemetry-bar" aria-label="System Metrics">
+    <div class="telemetry-item">
+      <span class="telemetry-label">Baseline Cost</span>
+      <span class="telemetry-val" id="metricBaseCost">$0.00</span>
+      <span class="telemetry-sub">Without optimization</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Optimized Cost</span>
+      <span class="telemetry-val accent-green" id="metricShiftedCost">$0.00</span>
+      <span class="telemetry-sub">With solar + BESS + shift</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Daily Savings</span>
+      <span class="telemetry-val accent-amber" id="metricSavings">$0.00</span>
+      <span class="telemetry-sub" id="metricSavingsPct">0% reduction</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Peak Demand Shaved</span>
+      <span class="telemetry-val accent-cyan" id="metricPeakShaved">0 W</span>
+      <span class="telemetry-sub" id="metricPeakWindow">17:00 – 22:00 window</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Solar Stored in BESS</span>
+      <span class="telemetry-val" id="metricSolarStored">0 Wh</span>
+      <span class="telemetry-sub">Clean self-consumption</span>
+    </div>
+  </section>
+
+  <!-- Primary Workspace -->
+  <main class="console-body">
+    <div class="layout-grid">
+      <!-- Left Rack: Parameters & Controls -->
+      <aside class="control-rack">
+        <div class="panel-section">
+          <div class="panel-header">
+            <h2>Grid & Energy Parameters</h2>
+            <button type="button" class="btn-text-action" id="btnResetDefaults">Reset</button>
+          </div>
+
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="inputThreshold">Peak Safety Threshold</label>
+              <output for="inputThreshold" id="valThreshold" class="num-readout">2500 W</output>
+            </div>
+            <input type="range" id="inputThreshold" min="1500" max="3500" step="50" value="2500">
+            <div class="scale-ticks">
+              <span>1.5 kW</span>
+              <span>2.5 kW</span>
+              <span>3.5 kW</span>
+            </div>
+            <p class="field-hint">Maximum allowable household grid power draw during peak tariff.</p>
+          </div>
+
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="inputSolar">Solar PV Array Size</label>
+              <output for="inputSolar" id="valSolar" class="num-readout">300 W</output>
+            </div>
+            <input type="range" id="inputSolar" min="0" max="1500" step="50" value="300">
+            <div class="scale-ticks">
+              <span>0 W</span>
+              <span>750 W</span>
+              <span>1500 W</span>
+            </div>
+            <p class="field-hint">Scaled against realistic diurnal solar irradiance curve (peak 915 W/m²).</p>
+          </div>
+
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="inputBattery">BESS Capacity</label>
+              <output for="inputBattery" id="valBattery" class="num-readout">1700 Wh</output>
+            </div>
+            <input type="range" id="inputBattery" min="500" max="4000" step="100" value="1700">
+            <div class="scale-ticks">
+              <span>0.5 kWh</span>
+              <span>2.0 kWh</span>
+              <span>4.0 kWh</span>
+            </div>
+            <p class="field-hint">Operating within 30%–80% SoC limits with 0.2C chg / 0.3C dischg protection.</p>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-header">
+            <h2>Tariff Structure (TOU)</h2>
+          </div>
+          <div class="tariff-matrix">
+            <div class="tariff-row peak">
+              <span class="tariff-badge">Peak</span>
+              <span class="tariff-hours">17:00 – 22:00</span>
+              <span class="tariff-rate">$0.50 / kWh</span>
+            </div>
+            <div class="tariff-row mid">
+              <span class="tariff-badge">Mid-Day</span>
+              <span class="tariff-hours">06:00 – 17:00</span>
+              <span class="tariff-rate">$0.30 / kWh</span>
+            </div>
+            <div class="tariff-row off-peak">
+              <span class="tariff-badge">Off-Peak</span>
+              <span class="tariff-hours">22:00 – 06:00</span>
+              <span class="tariff-rate">$0.10 / kWh</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-header">
+            <h2>Curve Visibility</h2>
+          </div>
+          <div class="toggle-group" id="curveToggles">
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleBase" checked>
+              <span class="legend-swatch swatch-base"></span>
+              <span>Unmanaged Base Load</span>
+            </label>
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleShifted" checked>
+              <span class="legend-swatch swatch-shifted"></span>
+              <span>Optimized Load Profile</span>
+            </label>
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleSolar" checked>
+              <span class="legend-swatch swatch-solar"></span>
+              <span>Solar PV Generation</span>
+            </label>
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleBattery" checked>
+              <span class="legend-swatch swatch-battery"></span>
+              <span>BESS Activity</span>
+            </label>
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleThreshold" checked>
+              <span class="legend-swatch swatch-threshold"></span>
+              <span>Safety Threshold</span>
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center & Right: 24h Visualizer & Dispatch Ledger -->
+      <section class="display-deck">
+        <!-- Visualizer Canvas Container -->
+        <div class="visualizer-panel">
+          <div class="visualizer-header">
+            <div>
+              <h2>24-Hour Residential Dispatch Curve</h2>
+              <p class="panel-caption">Real-time simulation of appliance demand, solar capture, and battery peak shaving.</p>
+            </div>
+            <div class="hover-inspect" id="hoverInspect">
+              <span class="inspect-time" id="inspectTime">Hover over chart</span>
+              <span class="inspect-val" id="inspectVal"></span>
+            </div>
+          </div>
+
+          <div class="canvas-wrapper">
+            <canvas id="dispatchCanvas" width="960" height="420"></canvas>
+          </div>
+
+          <div class="timeline-ticks" id="timelineTicks">
+            <!-- 0:00 to 23:00 injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Appliance Dispatch Ledger -->
+        <div class="ledger-panel">
+          <div class="ledger-header">
+            <div>
+              <h2>Appliance Priority & Dispatch Ledger</h2>
+              <p class="panel-caption">Automated scheduling: Priority 1 loads are preserved; flexible loads shift to off-peak slots.</p>
+            </div>
+            <div class="ledger-summary">
+              <span id="ledgerShiftCount" class="badge-shifted">0 loads deferred</span>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th>Appliance</th>
+                  <th>Priority</th>
+                  <th>Nominal Power</th>
+                  <th>Default Scheduled Window</th>
+                  <th>HEMS Action</th>
+                </tr>
+              </thead>
+              <tbody id="applianceTableBody">
+                <!-- Rows injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="console-footer">
+    <div class="footer-inner">
+      <span>Smart HEMS • Open Source Energy Management Model</span>
+      <span>Simulated with NumPy, Pandas, Matplotlib mathematical parity</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

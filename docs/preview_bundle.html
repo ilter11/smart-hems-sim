@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HEMS Console — Residential Energy Dispatch & Peak Shaving Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+/* ==========================================================================
+   HEMS Console — Bespoke Stylesheet
+   Grounded in physical electrical instrumentation & energy SCADA systems
+   ========================================================================== */
+
+:root {
+  /* Surface colors */
+  --bg-core: #090e17;
+  --bg-surface: #10192b;
+  --bg-surface-elevated: #162238;
+  --bg-surface-active: #1e2e4a;
+  --border-subtle: #1e2c45;
+  --border-prominent: #2d4268;
+
+  /* Typography */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Energy Domain Accents */
+  --color-solar: #f59e0b;       /* Solar PV generation amber */
+  --color-bess: #0ea5e9;        /* Battery energy storage azure */
+  --color-optimized: #10b981;   /* Optimized load pine green */
+  --color-unmanaged: #a855f7;   /* Unmanaged base load purple */
+  --color-alert: #f43f5e;       /* Grid threshold alert coral */
+  --color-offpeak: #38bdf8;
+
+  /* Spacing */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+/* Reset & Foundation */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-core);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Accessible focus styling */
+:focus-visible {
+  outline: 2px solid var(--color-bess);
+  outline-offset: 2px;
+}
+
+/* Header */
+.console-header {
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px 28px;
+}
+
+.header-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.system-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #34d399;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.brand-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.repo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-prominent);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.repo-link:hover {
+  background-color: var(--bg-surface-active);
+  border-color: #3b82f6;
+}
+
+/* Telemetry Readout Strip */
+.telemetry-bar {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 28px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.telemetry-item {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.telemetry-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.telemetry-val {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.telemetry-val.accent-green { color: var(--color-optimized); }
+.telemetry-val.accent-amber { color: var(--color-solar); }
+.telemetry-val.accent-cyan  { color: var(--color-bess); }
+
+.telemetry-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Console Main Body Layout */
+.console-body {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 20px 28px 40px;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Control Rack (Left Rail) */
+.control-rack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-section {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.panel-header h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.btn-text-action {
+  background: none;
+  border: none;
+  color: var(--color-bess);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-text-action:hover {
+  background-color: rgba(14, 165, 233, 0.1);
+}
+
+/* Controls */
+.control-item {
+  margin-bottom: 20px;
+}
+
+.control-item:last-child {
+  margin-bottom: 0;
+}
+
+.control-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.control-label-row label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.num-readout {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-bess);
+  background: var(--bg-surface-elevated);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Precision Range Slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--bg-surface-elevated);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #38bdf8;
+  border: 2px solid #0c4a6e;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.scale-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.field-hint {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.35;
+}
+
+/* Tariff Matrix */
+.tariff-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tariff-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+}
+
+.tariff-badge {
+  font-weight: 600;
+  font-size: 0.74rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.tariff-row.peak .tariff-badge { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
+.tariff-row.mid .tariff-badge { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.tariff-row.off-peak .tariff-badge { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+
+.tariff-hours {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+.tariff-rate {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Curve Visibility Toggles */
+.toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toggle-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.toggle-checkbox input[type="checkbox"] {
+  accent-color: var(--color-bess);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.swatch-base { background-color: var(--color-unmanaged); }
+.swatch-shifted { background-color: var(--color-optimized); }
+.swatch-solar { background-color: var(--color-solar); }
+.swatch-battery { background-color: var(--color-bess); }
+.swatch-threshold { background-color: var(--color-alert); }
+
+/* Display Deck (Center / Right) */
+.display-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.visualizer-panel, .ledger-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.visualizer-header, .ledger-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.visualizer-header h2, .ledger-header h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.panel-caption {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.hover-inspect {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  text-align: right;
+  min-width: 220px;
+}
+
+.inspect-time {
+  color: var(--text-secondary);
+  margin-right: 8px;
+}
+
+.inspect-val {
+  font-weight: 600;
+  color: var(--color-optimized);
+}
+
+/* Canvas Wrapper */
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  background-color: #0b1220;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+#dispatchCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.timeline-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+/* Ledger Panel & Table */
+.badge-shifted {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-solar);
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+.table-container {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+}
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.82rem;
+}
+
+.ledger-table th {
+  background-color: var(--bg-surface-elevated);
+  padding: 10px 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ledger-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.ledger-table tr:last-child td {
+  border-bottom: none;
+}
+
+.priority-pill {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+
+.priority-1 { background-color: rgba(244, 63, 94, 0.15); color: #fb7185; }
+.priority-2 { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.priority-3 { background-color: rgba(14, 165, 233, 0.15); color: #38bdf8; }
+.priority-4, .priority-5 { background-color: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+.status-preserved {
+  color: var(--text-secondary);
+}
+
+.status-shifted {
+  color: var(--color-solar);
+  font-weight: 600;
+}
+
+/* Footer */
+.console-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 24px 28px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.footer-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+</style>
+</head>
+<body>
+  <!-- Top Operational Banner -->
+  <header class="console-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="system-indicator active" aria-hidden="true"></div>
+        <div>
+          <h1 class="brand-title">Smart HEMS Console</h1>
+          <p class="brand-desc">Residential Energy Dispatch, Solar PV & Storage Optimization</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="https://github.com/your-username/smart-hems-sim" class="repo-link" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          Open Source Repository
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Telemetry Bar -->
+  <section class="telemetry-bar" aria-label="System Metrics">
+    <div class="telemetry-item">
+      <span class="telemetry-label">Baseline Cost</span>
+      <span class="telemetry-val" id="metricBaseCost">$0.00</span>
+      <span class="telemetry-sub">Without optimization</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Optimized Cost</span>
+      <span class="telemetry-val accent-green" id="metricShiftedCost">$0.00</span>
+      <span class="telemetry-sub">With solar + BESS + shift</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Daily Savings</span>
+      <span class="telemetry-val accent-amber" id="metricSavings">$0.00</span>
+      <span class="telemetry-sub" id="metricSavingsPct">0% reduction</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Peak Demand Shaved</span>
+      <span class="telemetry-val accent-cyan" id="metricPeakShaved">0 W</span>
+      <span class="telemetry-sub" id="metricPeakWindow">17:00 – 22:00 window</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Solar Stored in BESS</span>
+      <span class="telemetry-val" id="metricSolarStored">0 Wh</span>
+      <span class="telemetry-sub">Clean self-consumption</span>
+    </div>
+  </section>
+
+  <!-- Primary Workspace -->
+  <main class="console-body">
+    <div class="layout-grid">
+      <!-- Left Rack: Parameters & Controls -->
+      <aside class="control-rack">
+        <div class="panel-section">
+          <div class="panel-header">
+            <h2>Grid & Energy Parameters</h2>
+            <button type="button" class="btn-text-action" id="btnResetDefaults">Reset</button>
+          </div>
+
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="inputThreshold">Peak Safety Threshold</label>
+              <output for="inputThreshold" id="valThreshold" class="num-readout">2500 W</output>
+            </div>
+            <input type="range" id="inputThreshold" min="1500" max="3500" step="50" value="2500">
+            <div class="scale-ticks">
+              <span>1.5 kW</span>
+              <span>2.5 kW</span>
+              <span>3.5 kW</span>
+            </div>
+            <p class="field-hint">Maximum allowable household grid power draw during peak tariff.</p>
+          </div>
+
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="inputSolar">Solar PV Array Size</label>
+              <output for="inputSolar" id="valSolar" class="num-readout">300 W</output>
+            </div>
+            <input type="range" id="inputSolar" min="0" max="1500" step="50" value="300">
+            <div class="scale-ticks">
+              <span>0 W</span>
+              <span>750 W</span>
+              <span>1500 W</span>
+            </div>
+            <p class="field-hint">Scaled against realistic diurnal solar irradiance curve (peak 915 W/m²).</p>
+          </div>
+
+          <div class="control-item">
+            <div class="control-label-row">
+              <label for="inputBattery">BESS Capacity</label>
+              <output for="inputBattery" id="valBattery" class="num-readout">1700 Wh</output>
+            </div>
+            <input type="range" id="inputBattery" min="500" max="4000" step="100" value="1700">
+            <div class="scale-ticks">
+              <span>0.5 kWh</span>
+              <span>2.0 kWh</span>
+              <span>4.0 kWh</span>
+            </div>
+            <p class="field-hint">Operating within 30%–80% SoC limits with 0.2C chg / 0.3C dischg protection.</p>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-header">
+            <h2>Tariff Structure (TOU)</h2>
+          </div>
+          <div class="tariff-matrix">
+            <div class="tariff-row peak">
+              <span class="tariff-badge">Peak</span>
+              <span class="tariff-hours">17:00 – 22:00</span>
+              <span class="tariff-rate">$0.50 / kWh</span>
+            </div>
+            <div class="tariff-row mid">
+              <span class="tariff-badge">Mid-Day</span>
+              <span class="tariff-hours">06:00 – 17:00</span>
+              <span class="tariff-rate">$0.30 / kWh</span>
+            </div>
+            <div class="tariff-row off-peak">
+              <span class="tariff-badge">Off-Peak</span>
+              <span class="tariff-hours">22:00 – 06:00</span>
+              <span class="tariff-rate">$0.10 / kWh</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-header">
+            <h2>Curve Visibility</h2>
+          </div>
+          <div class="toggle-group" id="curveToggles">
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleBase" checked>
+              <span class="legend-swatch swatch-base"></span>
+              <span>Unmanaged Base Load</span>
+            </label>
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleShifted" checked>
+              <span class="legend-swatch swatch-shifted"></span>
+              <span>Optimized Load Profile</span>
+            </label>
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleSolar" checked>
+              <span class="legend-swatch swatch-solar"></span>
+              <span>Solar PV Generation</span>
+            </label>
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleBattery" checked>
+              <span class="legend-swatch swatch-battery"></span>
+              <span>BESS Activity</span>
+            </label>
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="toggleThreshold" checked>
+              <span class="legend-swatch swatch-threshold"></span>
+              <span>Safety Threshold</span>
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center & Right: 24h Visualizer & Dispatch Ledger -->
+      <section class="display-deck">
+        <!-- Visualizer Canvas Container -->
+        <div class="visualizer-panel">
+          <div class="visualizer-header">
+            <div>
+              <h2>24-Hour Residential Dispatch Curve</h2>
+              <p class="panel-caption">Real-time simulation of appliance demand, solar capture, and battery peak shaving.</p>
+            </div>
+            <div class="hover-inspect" id="hoverInspect">
+              <span class="inspect-time" id="inspectTime">Hover over chart</span>
+              <span class="inspect-val" id="inspectVal"></span>
+            </div>
+          </div>
+
+          <div class="canvas-wrapper">
+            <canvas id="dispatchCanvas" width="960" height="420"></canvas>
+          </div>
+
+          <div class="timeline-ticks" id="timelineTicks">
+            <!-- 0:00 to 23:00 injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Appliance Dispatch Ledger -->
+        <div class="ledger-panel">
+          <div class="ledger-header">
+            <div>
+              <h2>Appliance Priority & Dispatch Ledger</h2>
+              <p class="panel-caption">Automated scheduling: Priority 1 loads are preserved; flexible loads shift to off-peak slots.</p>
+            </div>
+            <div class="ledger-summary">
+              <span id="ledgerShiftCount" class="badge-shifted">0 loads deferred</span>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th>Appliance</th>
+                  <th>Priority</th>
+                  <th>Nominal Power</th>
+                  <th>Default Scheduled Window</th>
+                  <th>HEMS Action</th>
+                </tr>
+              </thead>
+              <tbody id="applianceTableBody">
+                <!-- Rows injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="console-footer">
+    <div class="footer-inner">
+      <span>Smart HEMS • Open Source Energy Management Model</span>
+      <span>Simulated with NumPy, Pandas, Matplotlib mathematical parity</span>
+    </div>
+  </footer>
+
+  <script>
+/**
+ * Smart HEMS Console Simulation Engine & Visualizer
+ * Grounded in physics-based solar irradiance, BESS constraints, and priority dispatch.
+ */
+
+// Domain Constants & Data
+const HOURLY_IRRADIANCE = [
+  0.0, 0.0, 0.0, 0.0, 0.0, 20.39, 461.84, 689.81, 844.62, 915.64,
+  898.18, 793.38, 608.26, 355.69, 10.56, 0.0, 0.0, 0.0, 0.0, 0.0,
+  0.0, 0.0, 0.0, 0.0
+];
+
+const TARIFF_RATES = {
+  peak: 0.50,     // 17:00 – 22:00
+  mid: 0.30,      // 06:00 – 17:00
+  off_peak: 0.10  // 22:00 – 06:00
+};
+
+const DEFAULT_APPLIANCES = [
+  { name: "Refrigerator", power: 200, priority: 1, category: "critical", slots: Array.from({length: 24}, (_, i) => i) },
+  { name: "Heater", power: 1700, priority: 1, category: "critical", slots: [17, 18, 19, 20, 21] },
+  { name: "Lighting", power: 100, priority: 1, category: "critical", slots: [15, 16, 17, 18, 19, 20, 21] },
+  { name: "Kettle", power: 500, priority: 2, category: "flexible", slots: [18] },
+  { name: "Air Fryer", power: 950, priority: 2, category: "flexible", slots: [19] },
+  { name: "Microwave", power: 500, priority: 2, category: "flexible", slots: [16] },
+  { name: "Induction Cooker", power: 1500, priority: 2, category: "flexible", slots: [17, 18] },
+  { name: "Air Conditioner", power: 1500, priority: 3, category: "flexible", slots: [] },
+  { name: "Blender", power: 250, priority: 3, category: "flexible", slots: [13] },
+  { name: "Coffee Machine", power: 1000, priority: 3, category: "flexible", slots: [14] },
+  { name: "Toaster", power: 800, priority: 3, category: "flexible", slots: [15] },
+  { name: "Iron", power: 750, priority: 3, category: "deferrable", slots: [21] },
+  { name: "Dishwasher", power: 840, priority: 4, category: "deferrable", slots: [20] },
+  { name: "Washing Machine", power: 700, priority: 4, category: "deferrable", slots: [21, 22] },
+  { name: "Television", power: 100, priority: 5, category: "deferrable", slots: [18, 19, 20, 21] }
+];
+
+// State & DOM Elements
+let currentSimulation = null;
+let hoveredHour = null;
+
+const elThreshold = document.getElementById("inputThreshold");
+const elSolar = document.getElementById("inputSolar");
+const elBattery = document.getElementById("inputBattery");
+
+const outThreshold = document.getElementById("valThreshold");
+const outSolar = document.getElementById("valSolar");
+const outBattery = document.getElementById("valBattery");
+
+const elReset = document.getElementById("btnResetDefaults");
+const canvas = document.getElementById("dispatchCanvas");
+const ctx = canvas.getContext("2d");
+
+const toggleBase = document.getElementById("toggleBase");
+const toggleShifted = document.getElementById("toggleShifted");
+const toggleSolar = document.getElementById("toggleSolar");
+const toggleBattery = document.getElementById("toggleBattery");
+const toggleThreshold = document.getElementById("toggleThreshold");
+
+// Main Simulation Pipeline
+function runSimulation() {
+  const threshold = parseFloat(elThreshold.value);
+  const solarRating = parseFloat(elSolar.value);
+  const batteryCap = parseFloat(elBattery.value);
+
+  outThreshold.textContent = `${threshold} W`;
+  outSolar.textContent = `${solarRating} W`;
+  outBattery.textContent = `${batteryCap} Wh`;
+
+  const hours = Array.from({length: 24}, (_, i) => i);
+  const peakHours = [17, 18, 19, 20, 21];
+  const offPeakHours = [22, 23, 0, 1, 2, 3, 4, 5];
+
+  // 1. Calculate Base Profile
+  const baseProfile = new Array(24).fill(0);
+  DEFAULT_APPLIANCES.forEach(app => {
+    app.slots.forEach(h => {
+      if (h >= 0 && h < 24) baseProfile[h] += app.power;
+    });
+  });
+
+  // 2. Solar PV Output
+  const solarOutput = HOURLY_IRRADIANCE.map(irr => (irr / 1000.0) * solarRating);
+
+  // 3. Battery Management
+  const batteryProfile = new Array(24).fill(0);
+  let batterySoC = 0.1 * batteryCap;
+  const maxCharge = 0.8 * batteryCap;
+  const minDischarge = 0.3 * batteryCap;
+  const chargeRate = 0.2 * batteryCap;
+  const dischargeRate = 0.3 * batteryCap;
+  let totalSolarStored = 0;
+
+  const shiftedProfile = [...baseProfile];
+
+  for (let h = 0; h < 24; h++) {
+    const isPeak = peakHours.includes(h);
+    // Daytime Solar Charging
+    if (!isPeak && batterySoC < maxCharge) {
+      const availableSolar = solarOutput[h];
+      const chg = Math.min(chargeRate, maxCharge - batterySoC, availableSolar);
+      if (chg > 0) {
+        batteryProfile[h] += chg;
+        batterySoC += chg;
+        totalSolarStored += chg;
+      }
+    }
+    // Peak Shaving Discharge
+    else if (isPeak && batterySoC > minDischarge) {
+      const excessLoad = Math.max(0, shiftedProfile[h] - threshold);
+      if (excessLoad > 0) {
+        const dischg = Math.min(dischargeRate, batterySoC - minDischarge, excessLoad);
+        batteryProfile[h] -= dischg;
+        shiftedProfile[h] -= dischg;
+        batterySoC -= dischg;
+      }
+    }
+  }
+
+  // 4. Priority-Based Load Shifting
+  // Deep clone appliances to track dispatched slots
+  const dispatchedAppliances = DEFAULT_APPLIANCES.map(a => ({
+    ...a,
+    currentSlots: [...a.slots],
+    shiftedLogs: []
+  }));
+
+  // Sort lowest priority first (5 down to 2)
+  dispatchedAppliances.sort((a, b) => b.priority - a.priority);
+
+  peakHours.forEach(h => {
+    while (shiftedProfile[h] > threshold) {
+      let shiftedAny = false;
+      for (let app of dispatchedAppliances) {
+        if (app.priority > 1 && app.currentSlots.includes(h)) {
+          // Find first viable off-peak hour
+          for (let offH of offPeakHours) {
+            if (shiftedProfile[offH] + app.power <= threshold) {
+              // Shift
+              shiftedProfile[h] -= app.power;
+              shiftedProfile[offH] += app.power;
+              app.currentSlots = app.currentSlots.filter(s => s !== h);
+              app.currentSlots.push(offH);
+              app.shiftedLogs.push({ from: h, to: offH });
+              shiftedAny = true;
+              break;
+            }
+          }
+          if (shiftedAny) break;
+        }
+      }
+      if (!shiftedAny) break; // Cannot shift further
+    }
+  });
+
+  // 5. Cost Computation
+  let baseCost = 0;
+  let shiftedCost = 0;
+  for (let h = 0; h < 24; h++) {
+    let rate = TARIFF_RATES.off_peak;
+    if (peakHours.includes(h)) rate = TARIFF_RATES.peak;
+    else if (h >= 6 && h < 17) rate = TARIFF_RATES.mid;
+
+    baseCost += (baseProfile[h] / 1000.0) * rate;
+    shiftedCost += (shiftedProfile[h] / 1000.0) * rate;
+  }
+
+  const savings = Math.max(0, baseCost - shiftedCost);
+  const savingsPct = baseCost > 0 ? (savings / baseCost) * 100 : 0;
+  const maxBase = Math.max(...baseProfile);
+  const maxShifted = Math.max(...shiftedProfile);
+  const peakShaved = Math.max(0, maxBase - maxShifted);
+
+  currentSimulation = {
+    threshold,
+    solarRating,
+    batteryCap,
+    hours,
+    baseProfile,
+    shiftedProfile,
+    batteryProfile,
+    solarOutput,
+    baseCost,
+    shiftedCost,
+    savings,
+    savingsPct,
+    peakShaved,
+    totalSolarStored,
+    dispatchedAppliances
+  };
+
+  updateTelemetry();
+  renderCanvas();
+  renderApplianceTable();
+}
+
+// Telemetry & UI updates
+function updateTelemetry() {
+  const s = currentSimulation;
+  document.getElementById("metricBaseCost").textContent = `$${s.baseCost.toFixed(2)}`;
+  document.getElementById("metricShiftedCost").textContent = `$${s.shiftedCost.toFixed(2)}`;
+  document.getElementById("metricSavings").textContent = `$${s.savings.toFixed(2)}`;
+  document.getElementById("metricSavingsPct").textContent = `${s.savingsPct.toFixed(1)}% savings`;
+  document.getElementById("metricPeakShaved").textContent = `${s.peakShaved.toFixed(0)} W`;
+  document.getElementById("metricSolarStored").textContent = `${s.totalSolarStored.toFixed(0)} Wh`;
+}
+
+// Canvas Rendering
+function renderCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.resetTransform();
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width;
+  const H = rect.height;
+  const padLeft = 55;
+  const padRight = 20;
+  const padTop = 20;
+  const padBottom = 30;
+
+  const chartW = W - padLeft - padRight;
+  const chartH = H - padTop - padBottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background Tariff Zones
+  const hourToX = h => padLeft + (h / 24) * chartW;
+  const maxPower = 5200; // Top Y axis
+  const powerToY = p => padTop + chartH - (p / maxPower) * chartH;
+
+  // Draw Tariff Shading
+  // Off-peak 0-6
+  ctx.fillStyle = "rgba(56, 189, 248, 0.03)";
+  ctx.fillRect(hourToX(0), padTop, hourToX(6) - hourToX(0), chartH);
+
+  // Mid-day 6-17
+  ctx.fillStyle = "rgba(245, 158, 11, 0.04)";
+  ctx.fillRect(hourToX(6), padTop, hourToX(17) - hourToX(6), chartH);
+
+  // Peak 17-22
+  ctx.fillStyle = "rgba(244, 63, 94, 0.08)";
+  ctx.fillRect(hourToX(17), padTop, hourToX(22) - hourToX(17), chartH);
+
+  // Off-peak 22-24
+  ctx.fillStyle = "rgba(56, 189, 248, 0.03)";
+  ctx.fillRect(hourToX(22), padTop, hourToX(24) - hourToX(22), chartH);
+
+  // Peak Window Label
+  ctx.fillStyle = "rgba(251, 113, 133, 0.7)";
+  ctx.font = "600 10px 'JetBrains Mono', monospace";
+  ctx.fillText("PEAK TARIFF (17:00 – 22:00)", hourToX(17) + 6, padTop + 16);
+
+  // Horizontal Grid Lines
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(34, 51, 84, 0.6)";
+  ctx.fillStyle = "#64748b";
+  ctx.font = "10px 'JetBrains Mono', monospace";
+
+  for (let p = 1000; p <= 5000; p += 1000) {
+    const y = powerToY(p);
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(W - padRight, y);
+    ctx.stroke();
+    ctx.fillText(`${p}W`, 12, y + 3);
+  }
+
+  // Threshold Line
+  if (toggleThreshold.checked) {
+    const yThresh = powerToY(currentSimulation.threshold);
+    ctx.save();
+    ctx.strokeStyle = "#f43f5e";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padLeft, yThresh);
+    ctx.lineTo(W - padRight, yThresh);
+    ctx.stroke();
+    ctx.fillStyle = "#f43f5e";
+    ctx.fillText(`CAP ${currentSimulation.threshold}W`, W - padRight - 80, yThresh - 6);
+    ctx.restore();
+  }
+
+  // Draw Curve Helper
+  const drawCurve = (data, strokeColor, lineWidth, isDashed = false) => {
+    ctx.save();
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = lineWidth;
+    if (isDashed) ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+
+    for (let h = 0; h < 24; h++) {
+      const x = hourToX(h + 0.5);
+      const y = powerToY(data[h]);
+      if (h === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  // Solar Output (Area + Curve)
+  if (toggleSolar.checked) {
+    ctx.save();
+    ctx.fillStyle = "rgba(245, 158, 11, 0.12)";
+    ctx.beginPath();
+    ctx.moveTo(hourToX(0.5), powerToY(0));
+    for (let h = 0; h < 24; h++) {
+      ctx.lineTo(hourToX(h + 0.5), powerToY(currentSimulation.solarOutput[h]));
+    }
+    ctx.lineTo(hourToX(23.5), powerToY(0));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    drawCurve(currentSimulation.solarOutput, "#f59e0b", 2);
+  }
+
+  // Battery Profile
+  if (toggleBattery.checked) {
+    drawCurve(currentSimulation.batteryProfile.map(b => Math.abs(b)), "#0ea5e9", 2, true);
+  }
+
+  // Base Profile
+  if (toggleBase.checked) {
+    drawCurve(currentSimulation.baseProfile, "#a855f7", 2, true);
+  }
+
+  // Shifted Optimized Profile
+  if (toggleShifted.checked) {
+    drawCurve(currentSimulation.shiftedProfile, "#10b981", 3);
+  }
+
+  // Hover Indicator
+  if (hoveredHour !== null && hoveredHour >= 0 && hoveredHour < 24) {
+    const x = hourToX(hoveredHour + 0.5);
+    ctx.save();
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x, padTop);
+    ctx.lineTo(x, padTop + chartH);
+    ctx.stroke();
+
+    // Dot on shifted profile
+    const yShift = powerToY(currentSimulation.shiftedProfile[hoveredHour]);
+    ctx.fillStyle = "#10b981";
+    ctx.beginPath();
+    ctx.arc(x, yShift, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Appliance Ledger Table Rendering
+function renderApplianceTable() {
+  const tbody = document.getElementById("applianceTableBody");
+  tbody.innerHTML = "";
+  let shiftCount = 0;
+
+  // Restore original ordering for the table
+  const apps = [...currentSimulation.dispatchedAppliances].sort((a, b) => a.priority - b.priority);
+
+  apps.forEach(app => {
+    const tr = document.createElement("tr");
+
+    // Format Scheduled Window
+    let windowText = "Inactive";
+    if (app.slots.length === 24) windowText = "24h Continuous";
+    else if (app.slots.length > 0) {
+      windowText = `${Math.min(...app.slots)}:00 – ${Math.max(...app.slots) + 1}:00 (${app.slots.length}h)`;
+    }
+
+    // Action status
+    let actionHtml = `<span class="status-preserved">Normal Operation</span>`;
+    if (app.shiftedLogs.length > 0) {
+      shiftCount++;
+      const moves = app.shiftedLogs.map(l => `${l.from}:00 ➔ ${l.to}:00`).join(", ");
+      actionHtml = `<span class="status-shifted">Deferred: ${moves}</span>`;
+    }
+
+    tr.innerHTML = `
+      <td><strong>${app.name}</strong></td>
+      <td><span class="priority-pill priority-${app.priority}">P${app.priority}</span></td>
+      <td><code>${app.power} W</code></td>
+      <td>${windowText}</td>
+      <td>${actionHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("ledgerShiftCount").textContent = `${shiftCount} load(s) deferred to off-peak`;
+}
+
+// Timeline ticks builder
+function initTimelineTicks() {
+  const container = document.getElementById("timelineTicks");
+  container.innerHTML = "";
+  for (let h = 0; h < 24; h += 2) {
+    const span = document.createElement("span");
+    span.textContent = `${h}:00`;
+    container.appendChild(span);
+  }
+}
+
+// Interactive Hover Inspection on Canvas
+canvas.addEventListener("mousemove", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const padLeft = 55;
+  const padRight = 20;
+  const chartW = rect.width - padLeft - padRight;
+
+  if (mouseX >= padLeft && mouseX <= rect.width - padRight) {
+    const frac = (mouseX - padLeft) / chartW;
+    const hour = Math.min(23, Math.max(0, Math.floor(frac * 24)));
+    hoveredHour = hour;
+
+    if (currentSimulation) {
+      const base = currentSimulation.baseProfile[hour];
+      const opt = currentSimulation.shiftedProfile[hour];
+      const diff = base - opt;
+      const hourStr = `${hour.toString().padStart(2, '0')}:00`;
+
+      document.getElementById("inspectTime").textContent = `Hour ${hourStr}:`;
+      document.getElementById("inspectVal").innerHTML = `
+        Base: <strong>${base}W</strong> | Optimized: <strong>${opt}W</strong> 
+        ${diff > 0 ? `<span style="color:#f59e0b">(-${diff}W shaved)</span>` : ''}
+      `;
+    }
+  } else {
+    hoveredHour = null;
+    document.getElementById("inspectTime").textContent = "Hover over chart";
+    document.getElementById("inspectVal").textContent = "";
+  }
+  renderCanvas();
+});
+
+canvas.addEventListener("mouseleave", () => {
+  hoveredHour = null;
+  document.getElementById("inspectTime").textContent = "Hover over chart";
+  document.getElementById("inspectVal").textContent = "";
+  renderCanvas();
+});
+
+// Event Listeners
+[elThreshold, elSolar, elBattery].forEach(input => {
+  input.addEventListener("input", runSimulation);
+});
+
+[toggleBase, toggleShifted, toggleSolar, toggleBattery, toggleThreshold].forEach(chk => {
+  chk.addEventListener("change", renderCanvas);
+});
+
+elReset.addEventListener("click", () => {
+  elThreshold.value = 2500;
+  elSolar.value = 300;
+  elBattery.value = 1700;
+  runSimulation();
+});
+
+window.addEventListener("resize", renderCanvas);
+
+// Initialize
+initTimelineTicks();
+runSimulation();
+
+</script>
+</body>
+</html>
